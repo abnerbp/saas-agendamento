@@ -1,7 +1,10 @@
 import { useEstablishment } from '../contexts/EstablishmentContext'
 import { supabase } from '../services/supabase'
+import { useState } from 'react'
+import ServicesPage from './ServicesPage'
 
 function DashboardPage() {
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'services'>('dashboard')
   const {
     establishment,
     loading,
@@ -26,15 +29,22 @@ function DashboardPage() {
             ? establishment.name
             : 'Estabelecimento'}
         </h1>
-
+<button
+  type="button"
+  onClick={() =>
+    setCurrentPage(currentPage === 'dashboard' ? 'services' : 'dashboard')
+  }
+>
+  {currentPage === 'dashboard' ? 'Serviços' : 'Voltar ao Dashboard'}
+</button>
         <button type="button" onClick={handleLogout}>
           Sair
         </button>
       </header>
-
+{currentPage === 'services' && <ServicesPage />}
       {error && <p>{error}</p>}
 
-      {establishment && (
+      {establishment && currentPage === 'dashboard' && (
         <section>
           <h2>Dashboard</h2>
 
