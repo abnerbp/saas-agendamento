@@ -1,43 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEstablishment } from '../contexts/EstablishmentContext'
 import { supabase } from '../services/supabase'
 
-type Establishment = {
-  id: string
-  name: string
-  slug: string
-}
-
 function DashboardPage() {
-  const [establishment, setEstablishment] = useState<Establishment | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    async function loadEstablishment() {
-      const { data, error } = await supabase
-        .from('establishments')
-        .select('id, name, slug')
-        .limit(1)
-        .maybeSingle()
-
-      if (error) {
-        setMessage(`Erro ao carregar estabelecimento: ${error.message}`)
-        setLoading(false)
-        return
-      }
-
-      if (!data) {
-        setMessage('Nenhum estabelecimento encontrado para este usuário.')
-        setLoading(false)
-        return
-      }
-
-      setEstablishment(data)
-      setLoading(false)
-    }
-
-    loadEstablishment()
-  }, [])
+  const {
+    establishment,
+    loading,
+    error,
+  } = useEstablishment()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -63,7 +32,7 @@ function DashboardPage() {
         </button>
       </header>
 
-      {message && <p>{message}</p>}
+      {error && <p>{error}</p>}
 
       {establishment && (
         <section>
@@ -75,6 +44,18 @@ function DashboardPage() {
 
           <p>
             Identificador: <strong>{establishment.slug}</strong>
+          </p>
+
+          <p>
+            Idioma/região: <strong>{establishment.locale}</strong>
+          </p>
+
+          <p>
+            Moeda: <strong>{establishment.currency}</strong>
+          </p>
+
+          <p>
+            Fuso horário: <strong>{establishment.timezone}</strong>
           </p>
         </section>
       )}

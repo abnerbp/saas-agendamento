@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import { supabase } from './services/supabase'
+import { EstablishmentProvider } from './contexts/EstablishmentContext'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -40,7 +41,11 @@ function App() {
     return <LoginPage />
   }
 
-  return <DashboardPage />
+  return (
+  <EstablishmentProvider>
+    <DashboardPage />
+  </EstablishmentProvider>
+)
 }
 
 export default App
