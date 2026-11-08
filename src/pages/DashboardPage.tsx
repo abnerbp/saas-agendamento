@@ -2,9 +2,13 @@ import { useEstablishment } from '../contexts/EstablishmentContext'
 import { supabase } from '../services/supabase'
 import { useState } from 'react'
 import ServicesPage from './ServicesPage'
+import ProfessionalsPage from '../ProfessionalsPage'
+
+type DashboardSection = 'dashboard' | 'services' | 'professionals'
 
 function DashboardPage() {
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'services'>('dashboard')
+  const [currentPage, setCurrentPage] =
+    useState<DashboardSection>('dashboard')
   const {
     establishment,
     loading,
@@ -29,19 +33,35 @@ function DashboardPage() {
             ? establishment.name
             : 'Estabelecimento'}
         </h1>
-<button
-  type="button"
-  onClick={() =>
-    setCurrentPage(currentPage === 'dashboard' ? 'services' : 'dashboard')
-  }
->
-  {currentPage === 'dashboard' ? 'Serviços' : 'Voltar ao Dashboard'}
-</button>
+        <nav aria-label="Navegação do painel">
+          <button
+            type="button"
+            onClick={() => setCurrentPage('dashboard')}
+            aria-current={currentPage === 'dashboard' ? 'page' : undefined}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('services')}
+            aria-current={currentPage === 'services' ? 'page' : undefined}
+          >
+            Serviços
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('professionals')}
+            aria-current={currentPage === 'professionals' ? 'page' : undefined}
+          >
+            Profissionais
+          </button>
+        </nav>
         <button type="button" onClick={handleLogout}>
           Sair
         </button>
       </header>
-{currentPage === 'services' && <ServicesPage />}
+      {currentPage === 'services' && <ServicesPage />}
+      {currentPage === 'professionals' && <ProfessionalsPage />}
       {error && <p>{error}</p>}
 
       {establishment && currentPage === 'dashboard' && (
