@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { useEstablishment } from '../contexts/EstablishmentContext'
+import { useEstablishment } from '../contexts/EstablishmentContextValue'
 import { supabase } from '../services/supabase'
 
 type Service = {
@@ -27,11 +27,7 @@ function ServicesPage() {
   useEffect(() => {
     if (establishmentLoading) return
 
-    if (!establishment) {
-      setServices([])
-      setLoading(false)
-      return
-    }
+    if (!establishment) return
 
     async function loadServices() {
       setLoading(true)
@@ -209,8 +205,12 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
 }
 
 
-  if (establishmentLoading || loading) {
+  if (establishmentLoading || (loading && establishment)) {
     return <p>Carregando serviços...</p>
+  }
+
+  if (!establishment) {
+    return <p>Não foi possível carregar o estabelecimento.</p>
   }
 
   return (

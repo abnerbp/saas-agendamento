@@ -1,30 +1,13 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
 } from 'react'
 import { supabase } from '../services/supabase'
-
-export type Establishment = {
-  id: string
-  name: string
-  slug: string
-  timezone: string
-  currency: string
-  locale: string
-}
-
-type EstablishmentContextType = {
-  establishment: Establishment | null
-  loading: boolean
-  error: string | null
-}
-
-const EstablishmentContext = createContext<
-  EstablishmentContextType | undefined
->(undefined)
+import {
+  EstablishmentContext,
+  type Establishment,
+} from './EstablishmentContextValue'
 
 type EstablishmentProviderProps = {
   children: ReactNode
@@ -82,16 +65,4 @@ export function EstablishmentProvider({
       {children}
     </EstablishmentContext.Provider>
   )
-}
-
-export function useEstablishment() {
-  const context = useContext(EstablishmentContext)
-
-  if (!context) {
-    throw new Error(
-      'useEstablishment deve ser usado dentro de EstablishmentProvider.',
-    )
-  }
-
-  return context
 }

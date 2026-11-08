@@ -1,4 +1,4 @@
-import { useEstablishment } from '../contexts/EstablishmentContext'
+import { useEstablishment } from '../contexts/EstablishmentContextValue'
 import { supabase } from '../services/supabase'
 import { useState } from 'react'
 import ServicesPage from './ServicesPage'
