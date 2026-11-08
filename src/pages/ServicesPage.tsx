@@ -22,6 +22,7 @@ function ServicesPage() {
   const [serviceDuration, setServiceDuration] = useState('30')
   const [saving, setSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
 
   useEffect(() => {
     if (establishmentLoading) return
@@ -55,6 +56,102 @@ function ServicesPage() {
     loadServices()
   }, [establishment, establishmentLoading])
   
+async function handleToggleService(service: Service) {
+  if (!establishment || saving) return
+
+  setSaving(true)
+  setError('')
+  setSuccessMessage('')
+
+  const { data, error: updateError } = await supabase
+    .from('services')
+    .update({ active: !service.active })
+    .eq('id', service.id)
+    .eq('establishment_id', establishment.id)
+    .select('id, name, price_cents, duration_minutes, active')
+    .single()
+
+  if (updateError) {
+    setError(`Erro ao alterar status: ${updateError.message}`)
+  } else {
+    setServices((previous) =>
+      previous.map((item) =>
+        item.id === service.id ? data : item
+      )
+    )
+
+    setSuccessMessage(
+      data.active
+        ? 'Serviço reativado com sucesso!'
+        : 'Serviço desativado com sucesso!'
+    )
+  }
+
+  setSaving(false)
+}
+
+  
+async function handleUpdateService(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault()
+
+  if (!establishment || !editingServiceId || saving) return
+
+  const name = serviceName.trim()
+  const price = Number(servicePrice)
+  const duration = Number(serviceDuration)
+  const priceCents = Math.round(price * 100)
+
+  if (
+    !name ||
+    servicePrice.trim() === '' ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isSafeInteger(priceCents) ||
+    serviceDuration.trim() === '' ||
+    !Number.isInteger(duration) ||
+    duration <= 0
+  ) {
+    setError('Preencha nome, preço e duração corretamente.')
+    return
+  }
+
+  setSaving(true)
+  setError('')
+  setSuccessMessage('')
+
+  const { data, error: updateError } = await supabase
+    .from('services')
+    .update({
+      name,
+      price_cents: priceCents,
+      duration_minutes: duration,
+    })
+    .eq('id', editingServiceId)
+    .eq('establishment_id', establishment.id)
+    .select('id, name, price_cents, duration_minutes, active')
+    .single()
+
+  if (updateError) {
+    setError(`Erro ao atualizar serviço: ${updateError.message}`)
+  } else {
+    setServices((previous) =>
+      previous
+        .map((service) =>
+          service.id === editingServiceId ? data : service
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+    )
+
+    setEditingServiceId(null)
+    setServiceName('')
+    setServicePrice('')
+    setServiceDuration('30')
+    setSuccessMessage('Serviço atualizado com sucesso!')
+  }
+
+  setSaving(false)
+}
+
 async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 
@@ -122,9 +219,9 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
 
       <p>Gerencie os serviços oferecidos pelo seu estabelecimento.</p>
       <section>
-  <h2>Cadastrar novo serviço</h2>
+ <h2>{editingServiceId ? 'Editar serviço' : 'Cadastrar novo serviço'}</h2>
 
-  <form onSubmit={handleCreateService}>
+  <form onSubmit={editingServiceId ? handleUpdateService : handleCreateService}>
     <div>
       <label htmlFor="serviceName">Nome do serviço</label>
       <input
@@ -165,7 +262,11 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
     </div>
 
     <button type="submit" disabled={saving}>
-      {saving ? 'Salvando...' : 'Cadastrar serviço'}
+      {saving
+  ? 'Salvando...'
+  : editingServiceId
+    ? 'Salvar alterações'
+    : 'Cadastrar serviço'}
     </button>
   </form>
 
@@ -193,6 +294,26 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
           <p>Duração: {service.duration_minutes} minutos</p>
 
           <p>Status: {service.active ? 'Ativo' : 'Inativo'}</p>
+            <button
+  type="button"
+  onClick={() => {
+    setEditingServiceId(service.id)
+    setServiceName(service.name)
+    setServicePrice((service.price_cents / 100).toFixed(2))
+    setServiceDuration(String(service.duration_minutes))
+    setError('')
+    setSuccessMessage('')
+  }}
+>
+  Editar
+  </button>
+<button
+  type="button"
+  disabled={saving}
+  onClick={() => handleToggleService(service)}
+>
+  {service.active ? 'Desativar' : 'Reativar'}
+</button>
         </section>
       ))}
     </main>
