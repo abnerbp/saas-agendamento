@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { Button, Card, EmptyState, LoadingState, PageTitle } from '../components/ui'
 import { useEstablishment } from '../contexts/EstablishmentContextValue'
 import { supabase } from '../services/supabase'
 
@@ -206,7 +207,7 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
 
 
   if (establishmentLoading || (loading && establishment)) {
-    return <p>Carregando serviços...</p>
+    return <LoadingState label="Carregando serviços..." />
   }
 
   if (!establishment) {
@@ -214,11 +215,12 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
   }
 
   return (
-    <main>
-      <h1>Serviços</h1>
-
-      <p>Gerencie os serviços oferecidos pelo seu estabelecimento.</p>
-      <section>
+    <main className="page-container">
+      <PageTitle
+        title="Serviços"
+        description="Gerencie os serviços oferecidos pelo seu estabelecimento."
+      />
+      <Card className="form-card">
  <h2>{editingServiceId ? 'Editar serviço' : 'Cadastrar novo serviço'}</h2>
 
   <form onSubmit={editingServiceId ? handleUpdateService : handleCreateService}>
@@ -261,26 +263,28 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
       />
     </div>
 
-    <button type="submit" disabled={saving}>
+    <Button type="submit" disabled={saving}>
       {saving
   ? 'Salvando...'
   : editingServiceId
     ? 'Salvar alterações'
     : 'Cadastrar serviço'}
-    </button>
+    </Button>
   </form>
 
   {successMessage && <p>{successMessage}</p>}
-</section>
+</Card>
 
       {error && <p role="alert">{error}</p>}
 
       {!error && services.length === 0 && (
-        <p>Nenhum serviço cadastrado ainda.</p>
+        <Card>
+          <EmptyState title="Nenhum serviço cadastrado ainda" />
+        </Card>
       )}
 
       {services.map((service) => (
-        <section key={service.id}>
+        <Card key={service.id} className="entity-card">
           <h2>{service.name}</h2>
 
           <p>
@@ -294,7 +298,8 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
           <p>Duração: {service.duration_minutes} minutos</p>
 
           <p>Status: {service.active ? 'Ativo' : 'Inativo'}</p>
-            <button
+            <Button
+  variant="secondary"
   type="button"
   onClick={() => {
     setEditingServiceId(service.id)
@@ -306,15 +311,16 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
   }}
 >
   Editar
-  </button>
-<button
+  </Button>
+<Button
+  variant="secondary"
   type="button"
   disabled={saving}
   onClick={() => handleToggleService(service)}
 >
   {service.active ? 'Desativar' : 'Reativar'}
-</button>
-        </section>
+</Button>
+        </Card>
       ))}
     </main>
   )

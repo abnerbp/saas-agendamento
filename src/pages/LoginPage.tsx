@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, Card, PageTitle, ScissorsIcon } from '../components/ui'
 import { supabase } from '../services/supabase'
 
 function LoginPage() {
@@ -30,15 +31,17 @@ function LoginPage() {
   }
 
   return (
-    <main>
-      <section>
-        <header>
-          <p>Gestão de atendimentos</p>
+    <main className="login-page">
+      <Card className="login-card">
+        <div className="login-brand">
+          <ScissorsIcon />
+          <span>AcheiHora</span>
+        </div>
 
-          <h1>Bem-vindo</h1>
-
-          <p>Entre para acessar seu estabelecimento.</p>
-        </header>
+        <PageTitle
+          title="Bem-vindo"
+          description="Entre para acessar seu estabelecimento."
+        />
 
         <form onSubmit={handleSubmit}>
           <label>
@@ -78,13 +81,17 @@ function LoginPage() {
             </div>
           </label>
 
-          <button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
-          </button>
+          </Button>
         </form>
 
-        {message && <p>{message}</p>}
-      </section>
+        {message && (
+          <p className="login-message" role="status">
+            {message}
+          </p>
+        )}
+      </Card>
     </main>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Card, EmptyState, LoadingState, PageTitle } from './components/ui'
 import { useEstablishment } from './contexts/EstablishmentContextValue'
 import { supabase } from './services/supabase'
 
@@ -87,6 +88,26 @@ function periodsOverlap(
   )
 }
 
+function getWorkingHourSaveError(message: string) {
+  if (/overlap|exclusion constraint/i.test(message)) {
+    return 'Os períodos ativos se sobrepõem. Revise os horários e tente novamente.'
+  }
+
+  if (/Only an active establishment owner or manager/i.test(message)) {
+    return 'Somente um proprietário ou gerente ativo pode alterar os horários.'
+  }
+
+  if (/Professional does not belong/i.test(message)) {
+    return 'O profissional não pertence ao estabelecimento selecionado.'
+  }
+
+  if (/permission denied|row-level security/i.test(message)) {
+    return 'Você não tem permissão para alterar os horários deste profissional.'
+  }
+
+  return `Erro ao salvar horários: ${message}`
+}
+
 function ProfessionalsPage() {
   const { establishment, loading: establishmentLoading } = useEstablishment()
 
@@ -107,6 +128,8 @@ function ProfessionalsPage() {
     string | null
   >(null)
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([])
+  const [showInactiveWorkingHours, setShowInactiveWorkingHours] =
+    useState(false)
   const [workingHoursLoading, setWorkingHoursLoading] = useState(false)
   const [workingHoursLoadFailed, setWorkingHoursLoadFailed] = useState(false)
   const [workingHoursSaving, setWorkingHoursSaving] = useState(false)
@@ -387,6 +410,60 @@ function ProfessionalsPage() {
     )
   }
 
+  async function replaceWorkingHourEntries(
+    establishmentId: string,
+    professionalId: string,
+    weekdaysToReplace: number[],
+    entries: WorkingHourEntry[],
+    successMessage: string,
+  ) {
+    setWorkingHoursSaving(true)
+
+    const { error: replaceError } = await supabase.rpc(
+      'replace_professional_working_hours',
+      {
+        p_establishment_id: establishmentId,
+        p_professional_id: professionalId,
+        p_weekdays: weekdaysToReplace,
+        p_periods: entries.map(({ weekday, start_time, end_time }) => ({
+          weekday,
+          start_time,
+          end_time,
+        })),
+      },
+    )
+
+    if (replaceError) {
+      setWorkingHoursError(getWorkingHourSaveError(replaceError.message))
+      setWorkingHoursSaving(false)
+      return
+    }
+
+    const { data, error: loadError } = await supabase
+      .from('professional_working_hours')
+      .select(workingHourFields)
+      .eq('establishment_id', establishmentId)
+      .eq('professional_id', professionalId)
+      .order('weekday')
+      .order('start_time')
+
+    if (loadError) {
+      setWorkingHoursLoadFailed(true)
+      setWorkingHoursError(
+        `Horários salvos, mas não foi possível atualizar a lista: ${loadError.message}`,
+      )
+      setWorkingHoursSaving(false)
+      return
+    }
+
+    setWorkingHours(sortWorkingHours(data ?? []))
+    setWorkingHoursLoadFailed(false)
+    resetWorkingHourForm()
+    setWorkingHoursSuccess(successMessage)
+    setWorkingHoursError('')
+    setWorkingHoursSaving(false)
+  }
+
   async function handleSaveWorkingHour(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -431,23 +508,37 @@ function ProfessionalsPage() {
 
     if (editingWorkingHourId) {
       const weekday = Number(workingHourWeekday)
+      const editedHour = workingHours.find(
+        (hour) => hour.id === editingWorkingHourId,
+      )
 
-      if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
-        setWorkingHoursError('Selecione um dia válido.')
+      if (
+        !editedHour ||
+        !Number.isInteger(weekday) ||
+        weekday < 0 ||
+        weekday > 6 ||
+        weekday !== editedHour.weekday
+      ) {
+        setWorkingHoursError(
+          'Não foi possível validar o horário. Recarregue a lista e tente novamente.',
+        )
         return
       }
 
-      const overlapsExistingHours = workingHours.some(
-        (hour) =>
-          hour.id !== editingWorkingHourId &&
-          hour.weekday === weekday &&
-          periodsOverlap(
-            workingHourStart,
-            workingHourEnd,
-            hour.start_time,
-            hour.end_time,
-          ),
-      )
+      const overlapsExistingHours =
+        editedHour.active &&
+        workingHours.some(
+          (hour) =>
+            hour.active &&
+            hour.id !== editingWorkingHourId &&
+            hour.weekday === weekday &&
+            periodsOverlap(
+              workingHourStart,
+              workingHourEnd,
+              hour.start_time,
+              hour.end_time,
+            ),
+        )
 
       if (overlapsExistingHours) {
         setWorkingHoursError(
@@ -456,15 +547,40 @@ function ProfessionalsPage() {
         return
       }
 
-      setWorkingHoursSaving(true)
-      const values = {
+      const updatedEntry = {
         weekday,
         start_time: workingHourStart,
         end_time: workingHourEnd,
       }
+
+      if (editedHour.active) {
+        const entries = workingHours
+          .filter(
+            (hour) =>
+              hour.active &&
+              hour.weekday === weekday &&
+              hour.id !== editingWorkingHourId,
+          )
+          .map(({ weekday: entryWeekday, start_time, end_time }) => ({
+            weekday: entryWeekday,
+            start_time,
+            end_time,
+          }))
+
+        await replaceWorkingHourEntries(
+          establishment.id,
+          professional.id,
+          [weekday],
+          [...entries, updatedEntry],
+          'Horário atualizado com sucesso!',
+        )
+        return
+      }
+
+      setWorkingHoursSaving(true)
       const { data, error: updateError } = await supabase
         .from('professional_working_hours')
-        .update(values)
+        .update(updatedEntry)
         .eq('id', editingWorkingHourId)
         .eq('establishment_id', establishment.id)
         .eq('professional_id', professional.id)
@@ -544,7 +660,9 @@ function ProfessionalsPage() {
     const conflictingWeekdays = [
       ...new Set(
         workingHours
-          .filter((hour) => selectedWeekdays.includes(hour.weekday))
+          .filter(
+            (hour) => hour.active && selectedWeekdays.includes(hour.weekday),
+          )
           .map((hour) => hour.weekday),
       ),
     ].sort((a, b) => a - b)
@@ -565,48 +683,13 @@ function ProfessionalsPage() {
       return
     }
 
-    await insertWorkingHourEntries(
+    await replaceWorkingHourEntries(
       establishment.id,
       professional.id,
+      selectedWeekdays,
       entries,
-      selectedWeekdays.length,
+      `${entries.length} período(s) salvo(s) em ${selectedWeekdays.length} dia(s).`,
     )
-  }
-
-  async function insertWorkingHourEntries(
-    establishmentId: string,
-    professionalId: string,
-    entries: WorkingHourEntry[],
-    savedWeekdaysCount: number,
-  ) {
-    setWorkingHoursSaving(true)
-    const { data, error: insertError } = await supabase
-      .from('professional_working_hours')
-      .insert(
-        entries.map((entry) => ({
-          establishment_id: establishmentId,
-          professional_id: professionalId,
-          ...entry,
-        })),
-      )
-      .select(workingHourFields)
-
-    if (insertError) {
-      setWorkingHoursError(
-        `Erro ao cadastrar horários: ${insertError.message}`,
-      )
-    } else {
-      setWorkingHours((previous) =>
-        sortWorkingHours([...previous, ...(data ?? [])]),
-      )
-      resetWorkingHourForm()
-      setWorkingHoursSuccess(
-        `${entries.length} período(s) cadastrado(s) em ${savedWeekdaysCount} dia(s).`,
-      )
-      setWorkingHoursError('')
-    }
-
-    setWorkingHoursSaving(false)
   }
 
   async function handleResolveWorkingHourConflict(
@@ -629,6 +712,7 @@ function ProfessionalsPage() {
         .filter((entry) =>
           workingHours.some(
             (hour) =>
+              hour.active &&
               hour.weekday === entry.weekday &&
               periodsOverlap(
                 entry.start_time,
@@ -657,11 +741,23 @@ function ProfessionalsPage() {
     const entriesToSave = batch.entries.filter((entry) =>
       weekdaysToSave.includes(entry.weekday),
     )
-    await insertWorkingHourEntries(
+    const existingEntries = workingHours
+      .filter(
+        (hour) => hour.active && weekdaysToSave.includes(hour.weekday),
+      )
+      .map(({ weekday, start_time, end_time }) => ({
+        weekday,
+        start_time,
+        end_time,
+      }))
+    const entriesToReplace = [...existingEntries, ...entriesToSave]
+
+    await replaceWorkingHourEntries(
       batch.establishmentId,
       batch.professionalId,
-      entriesToSave,
-      weekdaysToSave.length,
+      weekdaysToSave,
+      entriesToReplace,
+      `${entriesToSave.length} período(s) salvo(s) em ${weekdaysToSave.length} dia(s).`,
     )
   }
 
@@ -738,8 +834,13 @@ function ProfessionalsPage() {
     setWorkingHoursSaving(false)
   }
 
+  const displayedWorkingHours = showInactiveWorkingHours
+    ? workingHours
+    : workingHours.filter((hour) => hour.active)
+  const hasInactiveWorkingHours = workingHours.some((hour) => !hour.active)
+
   if (establishmentLoading || (loading && establishment)) {
-    return <p>Carregando profissionais...</p>
+    return <LoadingState label="Carregando profissionais..." />
   }
 
   if (!establishment) {
@@ -747,11 +848,13 @@ function ProfessionalsPage() {
   }
 
   return (
-    <main>
-      <h1>Profissionais</h1>
-      <p>Gerencie os profissionais do seu estabelecimento.</p>
+    <main className="page-container">
+      <PageTitle
+        title="Profissionais"
+        description="Gerencie os profissionais do seu estabelecimento."
+      />
 
-      <section>
+      <Card className="form-card">
         <h2>
           {editingProfessionalId
             ? 'Editar profissional'
@@ -830,16 +933,18 @@ function ProfessionalsPage() {
         </form>
 
         {successMessage && <p role="status">{successMessage}</p>}
-      </section>
+      </Card>
 
       {error && <p role="alert">{error}</p>}
 
       {!error && professionals.length === 0 && (
-        <p>Nenhum profissional cadastrado ainda.</p>
+        <Card>
+          <EmptyState title="Nenhum profissional cadastrado ainda" />
+        </Card>
       )}
 
       {professionals.map((professional) => (
-        <section key={professional.id}>
+        <Card key={professional.id} className="entity-card">
           <h2>{professional.name}</h2>
           <p>
             Unidade:{' '}
@@ -868,6 +973,7 @@ function ProfessionalsPage() {
             onClick={() => {
               const isSelected =
                 selectedProfessionalId === professional.id
+              setShowInactiveWorkingHours(false)
               setSelectedProfessionalId(
                 isSelected ? null : professional.id,
               )
@@ -882,7 +988,10 @@ function ProfessionalsPage() {
           </button>
 
           {selectedProfessionalId === professional.id && (
-            <section aria-label={`Horários de ${professional.name}`}>
+            <section
+              className="working-hours-panel"
+              aria-label={`Horários de ${professional.name}`}
+            >
               <h3>Horários de trabalho</h3>
               <p>
                 Selecione um ou mais dias e informe o expediente. Um intervalo
@@ -896,10 +1005,8 @@ function ProfessionalsPage() {
                     <select
                       id="workingHourWeekday"
                       value={workingHourWeekday}
-                      onChange={(event) =>
-                        setWorkingHourWeekday(event.target.value)
-                      }
                       required
+                      disabled
                     >
                       {weekdays.map((day, index) => (
                         <option key={day} value={index}>
@@ -907,6 +1014,7 @@ function ProfessionalsPage() {
                         </option>
                       ))}
                     </select>
+                    <p>O dia da semana não pode ser alterado durante a edição.</p>
                   </div>
                 ) : (
                   <fieldset>
@@ -1037,8 +1145,8 @@ function ProfessionalsPage() {
                   selectedProfessionalId && (
                   <div>
                     <p>
-                      Escolha como continuar. Períodos existentes não serão
-                      substituídos ou apagados; períodos sobrepostos não serão
+                      Escolha como continuar. Horários ativos sem conflito
+                      serão mantidos; períodos sobrepostos não serão
                       cadastrados.
                     </p>
                     <button
@@ -1063,6 +1171,7 @@ function ProfessionalsPage() {
                         pendingWorkingHourBatch.entries.every((entry) =>
                           workingHours.some(
                             (hour) =>
+                              hour.active &&
                               hour.weekday === entry.weekday &&
                               periodsOverlap(
                                 entry.start_time,
@@ -1088,13 +1197,28 @@ function ProfessionalsPage() {
                     </button>
                   </div>
                 )}
+              {hasInactiveWorkingHours && !workingHoursLoading && (
+                <button
+                  type="button"
+                  aria-expanded={showInactiveWorkingHours}
+                  onClick={() =>
+                    setShowInactiveWorkingHours((shown) => !shown)
+                  }
+                >
+                  {showInactiveWorkingHours
+                    ? 'Ocultar horários inativos'
+                    : 'Mostrar horários inativos'}
+                </button>
+              )}
               {workingHoursLoading ? (
                 <p>Carregando horários...</p>
               ) : workingHours.length === 0 ? (
                 <p>Nenhum horário cadastrado para este profissional.</p>
+              ) : displayedWorkingHours.length === 0 ? (
+                <p>Nenhum horário ativo cadastrado.</p>
               ) : (
                 weekdays.map((day, weekday) => {
-                  const dayHours = workingHours.filter(
+                  const dayHours = displayedWorkingHours.filter(
                     (hour) => hour.weekday === weekday,
                   )
 
@@ -1132,7 +1256,7 @@ function ProfessionalsPage() {
               )}
             </section>
           )}
-        </section>
+        </Card>
       ))}
     </main>
   )
