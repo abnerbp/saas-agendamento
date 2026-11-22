@@ -10,17 +10,36 @@ export type AppPage =
   | 'professionals'
 
 type NavItem = {
-  page: Exclude<AppPage, 'professionals'>
+  page: AppPage
   label: string
-  icon: 'home' | 'calendar' | 'customers' | 'services' | 'more'
+  icon:
+    | 'home'
+    | 'calendar'
+    | 'customers'
+    | 'services'
+    | 'more'
+    | 'professionals'
 }
 
-const navItems: NavItem[] = [
+const primaryNavItems: NavItem[] = [
   { page: 'home', label: 'Início', icon: 'home' },
   { page: 'agenda', label: 'Agenda', icon: 'calendar' },
   { page: 'customers', label: 'Clientes', icon: 'customers' },
   { page: 'services', label: 'Serviços', icon: 'services' },
+]
+
+const mobileNavItems: NavItem[] = [
+  ...primaryNavItems,
   { page: 'more', label: 'Mais', icon: 'more' },
+]
+
+const desktopNavItems: NavItem[] = [
+  ...primaryNavItems,
+  {
+    page: 'professionals',
+    label: 'Profissionais e horários',
+    icon: 'professionals',
+  },
 ]
 
 function getInitials(name: string) {
@@ -63,6 +82,12 @@ function NavigationIcon({ name }: { name: NavItem['icon'] }) {
         <circle cx="19" cy="12" r="1" />
       </>
     ),
+    professionals: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3 20v-1a6 6 0 0 1 12 0v1M17 8h4M19 6v4" />
+      </>
+    ),
   }
 
   return (
@@ -81,17 +106,19 @@ function NavigationIcon({ name }: { name: NavItem['icon'] }) {
 }
 
 function Navigation({
+  items,
   activePage,
   onNavigate,
   className,
 }: {
+  items: NavItem[]
   activePage: AppPage
-  onNavigate: (page: NavItem['page']) => void
+  onNavigate: (page: AppPage) => void
   className: string
 }) {
   return (
     <nav className={className} aria-label="Navegação principal">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const isActive =
           activePage === item.page ||
           (item.page === 'more' && activePage === 'professionals')
@@ -148,7 +175,7 @@ export function AppShell({
 }: {
   establishmentName: string
   activePage: AppPage
-  onNavigate: (page: NavItem['page']) => void
+  onNavigate: (page: AppPage) => void
   onLogout: () => void
   establishmentLogoUrl?: string | null
   children: ReactNode
@@ -197,6 +224,7 @@ export function AppShell({
       <div className="app-body">
         <aside className="desktop-sidebar">
           <Navigation
+            items={desktopNavItems}
             activePage={activePage}
             onNavigate={onNavigate}
             className="desktop-nav"
@@ -206,6 +234,7 @@ export function AppShell({
       </div>
 
       <Navigation
+        items={mobileNavItems}
         activePage={activePage}
         onNavigate={onNavigate}
         className="mobile-bottom-nav"

@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 8px;
   min-height: 72px;
-  padding: 10px 12px;
+  padding: 6px 12px;
   color: var(--brand-on-primary);
   background: var(--brand-primary);
   box-shadow: 0 3px 14px rgb(9 45 42 / 14%);
@@ -52,8 +52,10 @@
 }
 
 .app-header__right {
+  flex-direction: column;
   flex: 0 0 auto;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -73,14 +75,11 @@
 
 .platform-logo {
   display: grid;
-  flex: 0 0 68px;
+  flex: 0 0 auto;
   width: 68px;
-  height: 34px;
-  padding: 4px 7px;
+  height: 24px;
   place-items: center;
-  overflow: hidden;
-  background: #ffffff;
-  border-radius: 9px;
+  overflow: visible;
 }
 
 .platform-logo img {
@@ -91,7 +90,7 @@
 }
 
 .platform-logo__fallback {
-  color: var(--brand-primary-strong);
+  color: var(--brand-on-primary);
   font-size: 0.66rem;
   font-weight: 750;
   letter-spacing: -0.02em;
@@ -151,8 +150,8 @@
 
 .logout-button.ui-button {
   min-width: 42px;
-  min-height: 38px;
-  padding: 7px 9px;
+  min-height: 30px;
+  padding: 4px 8px;
   color: var(--brand-on-primary);
   background: transparent;
   border-color: rgb(255 255 255 / 24%);
@@ -716,6 +715,7 @@
 
   .app-header {
     min-height: 78px;
+    padding-block: 6px;
     padding-inline: 30px;
   }
 
@@ -733,10 +733,8 @@
   }
 
   .platform-logo {
-    flex-basis: 88px;
     width: 88px;
-    height: 38px;
-    padding: 5px 9px;
+    height: 28px;
   }
 
   .platform-logo__fallback {
@@ -745,8 +743,8 @@
 
   .logout-button.ui-button {
     min-width: 48px;
-    min-height: 40px;
-    padding-inline: 12px;
+    min-height: 32px;
+    padding: 5px 12px;
     font-size: 0.84rem;
   }
 
@@ -770,6 +768,9 @@
     top: 100px;
     display: grid;
     gap: 6px;
+    max-height: calc(100vh - 122px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .desktop-nav .nav-item.ui-button {
@@ -779,6 +780,13 @@
     min-height: 48px;
     padding: 10px 14px;
     font-size: 0.9rem;
+    text-align: left;
+  }
+
+  .desktop-nav .nav-item > span {
+    min-width: 0;
+    text-align: left;
+    white-space: normal;
   }
 
   .mobile-bottom-nav {
@@ -858,14 +866,12 @@
   }
 
   .app-header__right {
-    gap: 5px;
+    gap: 2px;
   }
 
   .platform-logo {
-    flex-basis: 58px;
     width: 58px;
-    height: 32px;
-    padding-inline: 5px;
+    height: 20px;
   }
 
   .platform-logo__fallback {
@@ -874,8 +880,8 @@
 
   .logout-button.ui-button {
     min-width: 40px;
-    min-height: 36px;
-    padding-inline: 7px;
+    min-height: 30px;
+    padding: 4px 7px;
     font-size: 0.72rem;
   }
 }
