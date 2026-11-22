@@ -11,6 +11,8 @@ type EditModalProps = {
   open: boolean
   title: string
   description?: string
+  eyebrow?: string
+  closeLabel?: string
   saving?: boolean
   onClose: () => void
   children: ReactNode
@@ -20,6 +22,8 @@ export function EditModal({
   open,
   title,
   description,
+  eyebrow = 'Edição',
+  closeLabel = 'Fechar edição',
   saving = false,
   onClose,
   children,
@@ -67,7 +71,7 @@ export function EditModal({
       <div className="edit-modal__surface">
         <header className="edit-modal__header">
           <div>
-            <p className="edit-modal__eyebrow">Edição</p>
+            <p className="edit-modal__eyebrow">{eyebrow}</p>
             <h2 id={titleId}>{title}</h2>
             {description && <p id={descriptionId}>{description}</p>}
           </div>
@@ -75,7 +79,7 @@ export function EditModal({
             variant="quiet"
             className="edit-modal__close"
             type="button"
-            aria-label="Fechar edição"
+            aria-label={closeLabel}
             disabled={saving}
             onClick={onClose}
           >

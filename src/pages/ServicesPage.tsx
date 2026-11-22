@@ -305,7 +305,7 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
       )}
 
       {services.map((service) => (
-        <Card key={service.id} className="entity-card">
+        <Card key={service.id} className="entity-card service-card">
           <h2>{service.name}</h2>
 
           <p>
@@ -319,28 +319,32 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
           <p>Duração: {service.duration_minutes} minutos</p>
 
           <p>Status: {service.active ? 'Ativo' : 'Inativo'}</p>
+          <div className="service-card__actions">
             <Button
-  variant="secondary"
-  type="button"
-  onClick={() => {
-    setEditingServiceId(service.id)
-    setEditingServiceName(service.name)
-    setEditingServicePrice((service.price_cents / 100).toFixed(2))
-    setEditingServiceDuration(String(service.duration_minutes))
-    setError('')
-    setSuccessMessage('')
-  }}
->
-  Editar
-  </Button>
-<Button
-  variant="secondary"
-  type="button"
-  disabled={saving}
-  onClick={() => handleToggleService(service)}
->
-  {service.active ? 'Desativar' : 'Reativar'}
-</Button>
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                setEditingServiceId(service.id)
+                setEditingServiceName(service.name)
+                setEditingServicePrice(
+                  (service.price_cents / 100).toFixed(2),
+                )
+                setEditingServiceDuration(String(service.duration_minutes))
+                setError('')
+                setSuccessMessage('')
+              }}
+            >
+              Editar
+            </Button>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={saving}
+              onClick={() => handleToggleService(service)}
+            >
+              {service.active ? 'Desativar' : 'Reativar'}
+            </Button>
+          </div>
         </Card>
       ))}
       <EditModal

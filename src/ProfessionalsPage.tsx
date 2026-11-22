@@ -787,6 +787,13 @@ function ProfessionalsPage() {
     )
   }
 
+  function handleCancelWorkingHourConflict() {
+    if (workingHoursSaving) return
+
+    setPendingWorkingHourBatch(null)
+    setWorkingHoursError('')
+  }
+
   function handleEditWorkingHour(hour: WorkingHour) {
     setPendingWorkingHourBatch(null)
     setEditingWorkingHourId(hour.id)
@@ -1140,66 +1147,11 @@ function ProfessionalsPage() {
               {workingHoursSuccess && (
                 <p role="status">{workingHoursSuccess}</p>
               )}
-              {workingHoursError && !editingWorkingHourId && (
+              {workingHoursError &&
+                !editingWorkingHourId &&
+                !pendingWorkingHourBatch && (
                 <p role="alert">{workingHoursError}</p>
               )}
-              {pendingWorkingHourBatch &&
-                pendingWorkingHourBatch.professionalId ===
-                  selectedProfessionalId && (
-                  <div>
-                    <p>
-                      Escolha como continuar. Horários ativos sem conflito
-                      serão mantidos; períodos sobrepostos não serão
-                      cadastrados.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleResolveWorkingHourConflict(false)}
-                      disabled={
-                        workingHoursSaving ||
-                        pendingWorkingHourBatch.weekdays.every((weekday) =>
-                          pendingWorkingHourBatch.conflictingWeekdays.includes(
-                            weekday,
-                          ),
-                        )
-                      }
-                    >
-                      Cadastrar somente nos dias sem horários
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleResolveWorkingHourConflict(true)}
-                      disabled={
-                        workingHoursSaving ||
-                        pendingWorkingHourBatch.entries.every((entry) =>
-                          workingHours.some(
-                            (hour) =>
-                              hour.active &&
-                              hour.weekday === entry.weekday &&
-                              periodsOverlap(
-                                entry.start_time,
-                                entry.end_time,
-                                hour.start_time,
-                                hour.end_time,
-                              ),
-                          ),
-                        )
-                      }
-                    >
-                      Cadastrar nos dias sem sobreposição
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingWorkingHourBatch(null)
-                        setWorkingHoursError('')
-                      }}
-                      disabled={workingHoursSaving}
-                    >
-                      Cancelar cadastro
-                    </button>
-                  </div>
-                )}
               {hasInactiveWorkingHours && !workingHoursLoading && (
                 <button
                   type="button"
@@ -1416,6 +1368,136 @@ function ProfessionalsPage() {
               </Button>
             </div>
           </form>
+        )}
+      </EditModal>
+      <EditModal
+        open={
+          pendingWorkingHourBatch !== null &&
+          pendingWorkingHourBatch.establishmentId === establishment.id &&
+          pendingWorkingHourBatch.professionalId === selectedProfessionalId
+        }
+        eyebrow="Atenção"
+        title="Conflito de horários"
+        description="Revise os períodos existentes e escolha como continuar."
+        saving={workingHoursSaving}
+        closeLabel="Fechar conflito de horários"
+        onClose={handleCancelWorkingHourConflict}
+      >
+        {pendingWorkingHourBatch && (
+          <div className="working-hour-conflict">
+            {workingHoursError && (
+              <p className="notice notice--error" role="alert">
+                {workingHoursError}
+              </p>
+            )}
+            <ul
+              className="working-hour-conflict__days"
+              aria-label="Horários propostos e existentes"
+            >
+              {pendingWorkingHourBatch.weekdays.map((weekday) => {
+                const proposedPeriods =
+                  pendingWorkingHourBatch.entries.filter(
+                    (entry) => entry.weekday === weekday,
+                  )
+                const existingPeriods = workingHours.filter(
+                  (hour) => hour.active && hour.weekday === weekday,
+                )
+                const hasOverlap = proposedPeriods.some((proposed) =>
+                  existingPeriods.some((existing) =>
+                    periodsOverlap(
+                      proposed.start_time,
+                      proposed.end_time,
+                      existing.start_time,
+                      existing.end_time,
+                    ),
+                  ),
+                )
+
+                return (
+                  <li key={weekday}>
+                    <strong>{weekdays[weekday]}</strong>
+                    <p>
+                      Propostos:{' '}
+                      {proposedPeriods
+                        .map(
+                          (period) =>
+                            `${period.start_time.slice(0, 5)}–${period.end_time.slice(0, 5)}`,
+                        )
+                        .join(', ')}
+                    </p>
+                    <p>
+                      Expediente ativo:{' '}
+                      {existingPeriods.length > 0
+                        ? existingPeriods
+                            .map(
+                              (period) =>
+                                `${period.start_time.slice(0, 5)}–${period.end_time.slice(0, 5)}`,
+                            )
+                            .join(', ')
+                        : 'nenhum'}
+                    </p>
+                    {hasOverlap && (
+                      <p className="working-hour-conflict__warning">
+                        Há sobreposição real neste dia.
+                      </p>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+            <p>
+              “Somente nos dias sem horários” ignora qualquer dia que já tenha
+              expediente. “Nos dias sem sobreposição” também considera dias
+              com expediente, desde que os períodos não se cruzem, e preserva
+              os horários existentes.
+            </p>
+            <div className="working-hour-conflict__actions">
+              <Button
+                type="button"
+                disabled={
+                  workingHoursSaving ||
+                  pendingWorkingHourBatch.weekdays.every((weekday) =>
+                    pendingWorkingHourBatch.conflictingWeekdays.includes(
+                      weekday,
+                    ),
+                  )
+                }
+                onClick={() => handleResolveWorkingHourConflict(false)}
+              >
+                Cadastrar somente nos dias sem horários
+              </Button>
+              <Button
+                type="button"
+                disabled={
+                  workingHoursSaving ||
+                  pendingWorkingHourBatch.entries.every((entry) =>
+                    workingHours.some(
+                      (hour) =>
+                        hour.active &&
+                        hour.weekday === entry.weekday &&
+                        periodsOverlap(
+                          entry.start_time,
+                          entry.end_time,
+                          hour.start_time,
+                          hour.end_time,
+                        ),
+                    ),
+                  )
+                }
+                onClick={() => handleResolveWorkingHourConflict(true)}
+              >
+                Cadastrar nos dias sem sobreposição
+              </Button>
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={workingHoursSaving}
+                onClick={handleCancelWorkingHourConflict}
+              >
+                Cancelar cadastro
+              </Button>
+            </div>
+          </div>
         )}
       </EditModal>
     </main>

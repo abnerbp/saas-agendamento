@@ -290,6 +290,31 @@
   width: 100%;
 }
 
+.service-card {
+  gap: 10px 16px;
+}
+
+.service-card > h2 {
+  margin-bottom: 0;
+}
+
+.service-card > p:last-of-type,
+.service-card__actions {
+  grid-column: 1 / -1;
+}
+
+.service-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-card__actions > .ui-button {
+  flex: 0 1 auto;
+  width: auto;
+}
+
 .entity-card > section {
   display: grid;
   gap: 14px;
@@ -326,6 +351,53 @@
   display: inline-flex;
   align-items: center;
   margin: 5px 12px 5px 0;
+}
+
+.working-hour-conflict {
+  display: grid;
+  gap: 14px;
+}
+
+.working-hour-conflict > .notice {
+  width: 100%;
+  margin: 0;
+}
+
+.working-hour-conflict__days {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.working-hour-conflict__days > li {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.working-hour-conflict__days p {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.working-hour-conflict__warning {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.working-hour-conflict__actions {
+  display: grid;
+  gap: 8px;
+}
+
+.working-hour-conflict__actions > .ui-button {
+  width: 100%;
 }
 
 .card-heading {
@@ -623,6 +695,16 @@
 }
 
 @media (min-width: 720px) {
+  .working-hour-conflict__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .working-hour-conflict__actions > .ui-button:last-child {
+    grid-column: 1 / -1;
+    justify-self: end;
+    width: auto;
+  }
+
   .edit-modal {
     width: min(620px, calc(100vw - 48px));
     max-height: min(82vh, 760px);
