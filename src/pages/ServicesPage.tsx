@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { EditModal } from '../components/EditModal'
 import { Button, Card, EmptyState, LoadingState, PageTitle } from '../components/ui'
 import { useEstablishment } from '../contexts/EstablishmentContextValue'
 import { supabase } from '../services/supabase'
@@ -21,6 +22,9 @@ function ServicesPage() {
   const [serviceName, setServiceName] = useState('')
   const [servicePrice, setServicePrice] = useState('')
   const [serviceDuration, setServiceDuration] = useState('30')
+  const [editingServiceName, setEditingServiceName] = useState('')
+  const [editingServicePrice, setEditingServicePrice] = useState('')
+  const [editingServiceDuration, setEditingServiceDuration] = useState('30')
   const [saving, setSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
@@ -93,18 +97,18 @@ async function handleUpdateService(event: React.FormEvent<HTMLFormElement>) {
 
   if (!establishment || !editingServiceId || saving) return
 
-  const name = serviceName.trim()
-  const price = Number(servicePrice)
-  const duration = Number(serviceDuration)
+  const name = editingServiceName.trim()
+  const price = Number(editingServicePrice)
+  const duration = Number(editingServiceDuration)
   const priceCents = Math.round(price * 100)
 
   if (
     !name ||
-    servicePrice.trim() === '' ||
+    editingServicePrice.trim() === '' ||
     !Number.isFinite(price) ||
     price < 0 ||
     !Number.isSafeInteger(priceCents) ||
-    serviceDuration.trim() === '' ||
+    editingServiceDuration.trim() === '' ||
     !Number.isInteger(duration) ||
     duration <= 0
   ) {
@@ -140,13 +144,23 @@ async function handleUpdateService(event: React.FormEvent<HTMLFormElement>) {
     )
 
     setEditingServiceId(null)
-    setServiceName('')
-    setServicePrice('')
-    setServiceDuration('30')
+    setEditingServiceName('')
+    setEditingServicePrice('')
+    setEditingServiceDuration('30')
     setSuccessMessage('Serviço atualizado com sucesso!')
   }
 
   setSaving(false)
+}
+
+function handleCancelServiceEdit() {
+  if (saving) return
+
+  setEditingServiceId(null)
+  setEditingServiceName('')
+  setEditingServicePrice('')
+  setEditingServiceDuration('30')
+  setError('')
 }
 
 async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
@@ -214,16 +228,25 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
     return <p>Não foi possível carregar o estabelecimento.</p>
   }
 
+  const editingService = services.find(
+    (service) => service.id === editingServiceId,
+  )
+
   return (
     <main className="page-container">
       <PageTitle
         title="Serviços"
         description="Gerencie os serviços oferecidos pelo seu estabelecimento."
       />
+      {successMessage && (
+        <p className="operation-feedback" role="status">
+          {successMessage}
+        </p>
+      )}
       <Card className="form-card">
- <h2>{editingServiceId ? 'Editar serviço' : 'Cadastrar novo serviço'}</h2>
+        <h2>Cadastrar novo serviço</h2>
 
-  <form onSubmit={editingServiceId ? handleUpdateService : handleCreateService}>
+  <form onSubmit={handleCreateService}>
     <div>
       <label htmlFor="serviceName">Nome do serviço</label>
       <input
@@ -264,18 +287,16 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
     </div>
 
     <Button type="submit" disabled={saving}>
-      {saving
-  ? 'Salvando...'
-  : editingServiceId
-    ? 'Salvar alterações'
-    : 'Cadastrar serviço'}
+      {saving ? 'Salvando...' : 'Cadastrar serviço'}
     </Button>
   </form>
-
-  {successMessage && <p>{successMessage}</p>}
 </Card>
 
-      {error && <p role="alert">{error}</p>}
+      {error && !editingServiceId && (
+        <p className="notice notice--error" role="alert">
+          {error}
+        </p>
+      )}
 
       {!error && services.length === 0 && (
         <Card>
@@ -303,9 +324,9 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
   type="button"
   onClick={() => {
     setEditingServiceId(service.id)
-    setServiceName(service.name)
-    setServicePrice((service.price_cents / 100).toFixed(2))
-    setServiceDuration(String(service.duration_minutes))
+    setEditingServiceName(service.name)
+    setEditingServicePrice((service.price_cents / 100).toFixed(2))
+    setEditingServiceDuration(String(service.duration_minutes))
     setError('')
     setSuccessMessage('')
   }}
@@ -322,6 +343,73 @@ async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
 </Button>
         </Card>
       ))}
+      <EditModal
+        open={editingServiceId !== null}
+        title={
+          editingService
+            ? `Editar serviço — ${editingService.name}`
+            : 'Editar serviço'
+        }
+        description="Altere os dados do serviço selecionado."
+        saving={saving}
+        onClose={handleCancelServiceEdit}
+      >
+        {editingServiceId && (
+          <form onSubmit={handleUpdateService} className="edit-modal__form">
+            <label htmlFor="editServiceName">Nome do serviço</label>
+            <input
+              id="editServiceName"
+              type="text"
+              value={editingServiceName}
+              onChange={(event) => setEditingServiceName(event.target.value)}
+              disabled={saving}
+              required
+            />
+            <label htmlFor="editServicePrice">Preço (R$)</label>
+            <input
+              id="editServicePrice"
+              type="number"
+              min="0"
+              step="0.01"
+              value={editingServicePrice}
+              onChange={(event) => setEditingServicePrice(event.target.value)}
+              disabled={saving}
+              required
+            />
+            <label htmlFor="editServiceDuration">Duração (minutos)</label>
+            <input
+              id="editServiceDuration"
+              type="number"
+              min="1"
+              step="1"
+              value={editingServiceDuration}
+              onChange={(event) =>
+                setEditingServiceDuration(event.target.value)
+              }
+              disabled={saving}
+              required
+            />
+            {error && (
+              <p className="notice notice--error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="edit-modal__actions">
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={saving}
+                onClick={handleCancelServiceEdit}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </EditModal>
     </main>
   )
 }

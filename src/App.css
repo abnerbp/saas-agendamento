@@ -417,6 +417,130 @@
   }
 }
 
+.edit-modal {
+  width: min(620px, calc(100vw - 24px));
+  max-width: none;
+  max-height: min(88vh, 760px);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+}
+
+.edit-modal::backdrop {
+  background: rgb(15 31 30 / 58%);
+  backdrop-filter: blur(2px);
+}
+
+.edit-modal__surface {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 760px);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 24px 72px rgb(9 45 42 / 24%);
+}
+
+.edit-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-modal__header > div {
+  min-width: 0;
+}
+
+.edit-modal__eyebrow {
+  margin: 0 0 4px;
+  color: var(--brand-primary);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.edit-modal__header h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.18rem;
+}
+
+.edit-modal__header p:last-child:not(.edit-modal__eyebrow) {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.edit-modal__close.ui-button {
+  flex: 0 0 40px;
+  width: 40px;
+  min-height: 40px;
+  padding: 4px;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.edit-modal__body {
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.edit-modal__form {
+  display: grid;
+  gap: 12px;
+}
+
+.edit-modal__form > input,
+.edit-modal__form > select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font: inherit;
+}
+
+.edit-modal__form > input:focus-visible,
+.edit-modal__form > select:focus-visible,
+.edit-modal__actions .ui-button:focus-visible,
+.edit-modal__close.ui-button:focus-visible {
+  outline: 3px solid var(--brand-primary-soft);
+  outline-offset: 2px;
+}
+
+.edit-modal__form > input:disabled,
+.edit-modal__form > select:disabled {
+  opacity: 0.7;
+}
+
+.edit-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.operation-feedback {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--brand-primary-strong);
+  background: var(--brand-primary-soft);
+  border-radius: 12px;
+}
+
 .notice {
   width: min(100%, 980px);
   margin: 0 auto 16px;
@@ -499,6 +623,15 @@
 }
 
 @media (min-width: 720px) {
+  .edit-modal {
+    width: min(620px, calc(100vw - 48px));
+    max-height: min(82vh, 760px);
+  }
+
+  .edit-modal__surface {
+    max-height: min(82vh, 760px);
+  }
+
   .app-header {
     min-height: 78px;
     padding-inline: 30px;

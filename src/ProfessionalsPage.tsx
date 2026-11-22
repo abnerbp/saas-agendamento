@@ -1,5 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Card, EmptyState, LoadingState, PageTitle } from './components/ui'
+import { EditModal } from './components/EditModal'
+import {
+  Button,
+  Card,
+  EmptyState,
+  LoadingState,
+  PageTitle,
+} from './components/ui'
 import { useEstablishment } from './contexts/EstablishmentContextValue'
 import { supabase } from './services/supabase'
 
@@ -124,6 +131,10 @@ function ProfessionalsPage() {
   const [professionalPhone, setProfessionalPhone] = useState('')
   const [professionalEmail, setProfessionalEmail] = useState('')
   const [selectedUnitId, setSelectedUnitId] = useState('')
+  const [editingProfessionalName, setEditingProfessionalName] = useState('')
+  const [editingProfessionalPhone, setEditingProfessionalPhone] = useState('')
+  const [editingProfessionalEmail, setEditingProfessionalEmail] = useState('')
+  const [editingUnitId, setEditingUnitId] = useState('')
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<
     string | null
   >(null)
@@ -244,11 +255,18 @@ function ProfessionalsPage() {
   }, [establishment, establishmentLoading, selectedProfessionalId])
 
   function resetForm() {
-    setEditingProfessionalId(null)
     setProfessionalName('')
     setProfessionalPhone('')
     setProfessionalEmail('')
     setSelectedUnitId('')
+  }
+
+  function resetEditForm() {
+    setEditingProfessionalId(null)
+    setEditingProfessionalName('')
+    setEditingProfessionalPhone('')
+    setEditingProfessionalEmail('')
+    setEditingUnitId('')
   }
 
   async function handleSaveProfessional(event: FormEvent<HTMLFormElement>) {
@@ -256,10 +274,11 @@ function ProfessionalsPage() {
 
     if (!establishment || saving) return
 
-    const name = professionalName.trim()
-    const phone = professionalPhone.trim()
-    const email = professionalEmail.trim()
-    const unitId = selectedUnitId
+    const isEditing = editingProfessionalId !== null
+    const name = (isEditing ? editingProfessionalName : professionalName).trim()
+    const phone = (isEditing ? editingProfessionalPhone : professionalPhone).trim()
+    const email = (isEditing ? editingProfessionalEmail : professionalEmail).trim()
+    const unitId = isEditing ? editingUnitId : selectedUnitId
 
     if (!name || !unitId) {
       setError('Informe o nome e selecione uma unidade.')
@@ -320,7 +339,7 @@ function ProfessionalsPage() {
             )
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
         )
-        resetForm()
+        resetEditForm()
         setSuccessMessage('Profissional atualizado com sucesso!')
       }
     } else {
@@ -351,12 +370,19 @@ function ProfessionalsPage() {
 
   function handleEditProfessional(professional: Professional) {
     setEditingProfessionalId(professional.id)
-    setProfessionalName(professional.name)
-    setProfessionalPhone(professional.phone ?? '')
-    setProfessionalEmail(professional.email ?? '')
-    setSelectedUnitId(professional.unit_id)
+    setEditingProfessionalName(professional.name)
+    setEditingProfessionalPhone(professional.phone ?? '')
+    setEditingProfessionalEmail(professional.email ?? '')
+    setEditingUnitId(professional.unit_id)
     setError('')
     setSuccessMessage('')
+  }
+
+  function handleCancelProfessionalEdit() {
+    if (saving) return
+
+    resetEditForm()
+    setError('')
   }
 
   async function handleToggleProfessional(professional: Professional) {
@@ -771,6 +797,14 @@ function ProfessionalsPage() {
     setWorkingHoursSuccess('')
   }
 
+  function handleCancelWorkingHourEdit() {
+    if (workingHoursSaving) return
+
+    resetWorkingHourForm()
+    setWorkingHoursError('')
+    setWorkingHoursSuccess('')
+  }
+
   async function handleToggleWorkingHour(hour: WorkingHour) {
     if (
       !establishment ||
@@ -838,6 +872,12 @@ function ProfessionalsPage() {
     ? workingHours
     : workingHours.filter((hour) => hour.active)
   const hasInactiveWorkingHours = workingHours.some((hour) => !hour.active)
+  const editingProfessional = professionals.find(
+    (professional) => professional.id === editingProfessionalId,
+  )
+  const editingWorkingHour = workingHours.find(
+    (hour) => hour.id === editingWorkingHourId,
+  )
 
   if (establishmentLoading || (loading && establishment)) {
     return <LoadingState label="Carregando profissionais..." />
@@ -853,13 +893,14 @@ function ProfessionalsPage() {
         title="Profissionais"
         description="Gerencie os profissionais do seu estabelecimento."
       />
+      {successMessage && (
+        <p className="operation-feedback" role="status">
+          {successMessage}
+        </p>
+      )}
 
       <Card className="form-card">
-        <h2>
-          {editingProfessionalId
-            ? 'Editar profissional'
-            : 'Cadastrar novo profissional'}
-        </h2>
+        <h2>Cadastrar novo profissional</h2>
 
         <form onSubmit={handleSaveProfessional}>
           <div>
@@ -919,23 +960,16 @@ function ProfessionalsPage() {
           )}
 
           <button type="submit" disabled={saving || units.length === 0}>
-            {saving
-              ? 'Salvando...'
-              : editingProfessionalId
-                ? 'Salvar alterações'
-                : 'Cadastrar profissional'}
+            {saving ? 'Salvando...' : 'Cadastrar profissional'}
           </button>
-          {editingProfessionalId && (
-            <button type="button" onClick={resetForm} disabled={saving}>
-              Cancelar edição
-            </button>
-          )}
         </form>
-
-        {successMessage && <p role="status">{successMessage}</p>}
       </Card>
 
-      {error && <p role="alert">{error}</p>}
+      {error && !editingProfessionalId && (
+        <p className="notice notice--error" role="alert">
+          {error}
+        </p>
+      )}
 
       {!error && professionals.length === 0 && (
         <Card>
@@ -998,25 +1032,11 @@ function ProfessionalsPage() {
                 divide o expediente em dois períodos.
               </p>
 
-              <form onSubmit={handleSaveWorkingHour}>
-                {editingWorkingHourId ? (
-                  <div>
-                    <label htmlFor="workingHourWeekday">Dia da semana</label>
-                    <select
-                      id="workingHourWeekday"
-                      value={workingHourWeekday}
-                      required
-                      disabled
-                    >
-                      {weekdays.map((day, index) => (
-                        <option key={day} value={index}>
-                          {day}
-                        </option>
-                      ))}
-                    </select>
-                    <p>O dia da semana não pode ser alterado durante a edição.</p>
-                  </div>
-                ) : (
+              {!editingWorkingHourId && (
+                <form
+                  onSubmit={handleSaveWorkingHour}
+                  className="working-hour-create-form"
+                >
                   <fieldset>
                     <legend>Dias da semana</legend>
                     {weekdaysInSelectionOrder.map(({ weekday, label }) => (
@@ -1036,7 +1056,6 @@ function ProfessionalsPage() {
                       </label>
                     ))}
                   </fieldset>
-                )}
                 <div>
                   <label htmlFor="workingHourStart">Início do expediente</label>
                   <input
@@ -1061,54 +1080,50 @@ function ProfessionalsPage() {
                     required
                   />
                 </div>
-                {!editingWorkingHourId && (
-                  <>
-                    <div>
-                      <label>
+                  <div>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={hasWorkingHourBreak}
+                        onChange={(event) =>
+                          setHasWorkingHourBreak(event.target.checked)
+                        }
+                      />
+                      Possui intervalo de descanso?
+                    </label>
+                  </div>
+                  {hasWorkingHourBreak && (
+                    <>
+                      <div>
+                        <label htmlFor="workingHourBreakStart">
+                          Início do intervalo
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={hasWorkingHourBreak}
+                          id="workingHourBreakStart"
+                          type="time"
+                          value={workingHourBreakStart}
                           onChange={(event) =>
-                            setHasWorkingHourBreak(event.target.checked)
+                            setWorkingHourBreakStart(event.target.value)
                           }
+                          required
                         />
-                        Possui intervalo de descanso?
-                      </label>
-                    </div>
-                    {hasWorkingHourBreak && (
-                      <>
-                        <div>
-                          <label htmlFor="workingHourBreakStart">
-                            Início do intervalo
-                          </label>
-                          <input
-                            id="workingHourBreakStart"
-                            type="time"
-                            value={workingHourBreakStart}
-                            onChange={(event) =>
-                              setWorkingHourBreakStart(event.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="workingHourBreakEnd">
-                            Término do intervalo
-                          </label>
-                          <input
-                            id="workingHourBreakEnd"
-                            type="time"
-                            value={workingHourBreakEnd}
-                            onChange={(event) =>
-                              setWorkingHourBreakEnd(event.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
+                      </div>
+                      <div>
+                        <label htmlFor="workingHourBreakEnd">
+                          Término do intervalo
+                        </label>
+                        <input
+                          id="workingHourBreakEnd"
+                          type="time"
+                          value={workingHourBreakEnd}
+                          onChange={(event) =>
+                            setWorkingHourBreakEnd(event.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
                 <button
                   type="submit"
                   disabled={
@@ -1117,27 +1132,15 @@ function ProfessionalsPage() {
                     workingHoursLoadFailed
                   }
                 >
-                  {workingHoursSaving
-                    ? 'Salvando...'
-                    : editingWorkingHourId
-                      ? 'Salvar alterações'
-                      : 'Adicionar período'}
+                  {workingHoursSaving ? 'Salvando...' : 'Adicionar período'}
                 </button>
-                {editingWorkingHourId && (
-                  <button
-                    type="button"
-                    onClick={resetWorkingHourForm}
-                    disabled={workingHoursSaving}
-                  >
-                    Cancelar edição
-                  </button>
-                )}
-              </form>
+                </form>
+              )}
 
               {workingHoursSuccess && (
                 <p role="status">{workingHoursSuccess}</p>
               )}
-              {workingHoursError && (
+              {workingHoursError && !editingWorkingHourId && (
                 <p role="alert">{workingHoursError}</p>
               )}
               {pendingWorkingHourBatch &&
@@ -1258,6 +1261,163 @@ function ProfessionalsPage() {
           )}
         </Card>
       ))}
+      <EditModal
+        open={editingProfessionalId !== null}
+        title={
+          editingProfessional
+            ? `Editar profissional — ${editingProfessional.name}`
+            : 'Editar profissional'
+        }
+        description="Altere os dados do profissional selecionado."
+        saving={saving}
+        onClose={handleCancelProfessionalEdit}
+      >
+        {editingProfessionalId && (
+          <form onSubmit={handleSaveProfessional} className="edit-modal__form">
+            <label htmlFor="editProfessionalName">Nome</label>
+            <input
+              id="editProfessionalName"
+              type="text"
+              value={editingProfessionalName}
+              onChange={(event) =>
+                setEditingProfessionalName(event.target.value)
+              }
+              disabled={saving}
+              required
+            />
+            <label htmlFor="editProfessionalPhone">Telefone (opcional)</label>
+            <input
+              id="editProfessionalPhone"
+              type="tel"
+              value={editingProfessionalPhone}
+              onChange={(event) =>
+                setEditingProfessionalPhone(event.target.value)
+              }
+              disabled={saving}
+            />
+            <label htmlFor="editProfessionalEmail">Email (opcional)</label>
+            <input
+              id="editProfessionalEmail"
+              type="email"
+              value={editingProfessionalEmail}
+              onChange={(event) =>
+                setEditingProfessionalEmail(event.target.value)
+              }
+              disabled={saving}
+            />
+            <label htmlFor="editProfessionalUnit">Unidade</label>
+            <select
+              id="editProfessionalUnit"
+              value={editingUnitId}
+              onChange={(event) => setEditingUnitId(event.target.value)}
+              required
+              disabled={units.length === 0 || saving}
+            >
+              <option value="">Selecione uma unidade</option>
+              {units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name}
+                  {unit.active ? '' : ' (inativa)'}
+                </option>
+              ))}
+            </select>
+            {error && (
+              <p className="notice notice--error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="edit-modal__actions">
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={saving}
+                onClick={handleCancelProfessionalEdit}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving || units.length === 0}
+              >
+                {saving ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </EditModal>
+      <EditModal
+        open={editingWorkingHourId !== null}
+        title={
+          editingWorkingHour
+            ? `Editar horário — ${weekdays[editingWorkingHour.weekday]}, ${editingWorkingHour.start_time.slice(0, 5)}–${editingWorkingHour.end_time.slice(0, 5)}`
+            : 'Editar horário de trabalho'
+        }
+        description={
+          editingProfessional
+            ? `Profissional: ${editingProfessional.name}. O dia da semana não pode ser alterado.`
+            : 'O dia da semana não pode ser alterado.'
+        }
+        saving={workingHoursSaving}
+        onClose={handleCancelWorkingHourEdit}
+      >
+        {editingWorkingHourId && (
+          <form
+            onSubmit={handleSaveWorkingHour}
+            className="edit-modal__form"
+          >
+            <label htmlFor="editWorkingHourWeekday">Dia da semana</label>
+            <input
+              id="editWorkingHourWeekday"
+              type="text"
+              value={weekdays[Number(workingHourWeekday)] ?? ''}
+              readOnly
+            />
+            <label htmlFor="editWorkingHourStart">Início do expediente</label>
+            <input
+              id="editWorkingHourStart"
+              type="time"
+              value={workingHourStart}
+              onChange={(event) => setWorkingHourStart(event.target.value)}
+              disabled={workingHoursSaving}
+              required
+            />
+            <label htmlFor="editWorkingHourEnd">Término do expediente</label>
+            <input
+              id="editWorkingHourEnd"
+              type="time"
+              value={workingHourEnd}
+              onChange={(event) => setWorkingHourEnd(event.target.value)}
+              disabled={workingHoursSaving}
+              required
+            />
+            {workingHoursError && (
+              <p className="notice notice--error" role="alert">
+                {workingHoursError}
+              </p>
+            )}
+            <div className="edit-modal__actions">
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={workingHoursSaving}
+                onClick={handleCancelWorkingHourEdit}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  workingHoursSaving ||
+                  workingHoursLoading ||
+                  workingHoursLoadFailed
+                }
+              >
+                {workingHoursSaving ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </EditModal>
     </main>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Button } from './ui'
 
 export type AppPage =
@@ -114,6 +114,30 @@ function Navigation({
   )
 }
 
+function EstablishmentAvatar({
+  establishmentName,
+  logoUrl,
+}: {
+  establishmentName: string
+  logoUrl?: string | null
+}) {
+  const [logoFailed, setLogoFailed] = useState(false)
+
+  return (
+    <span
+      className="establishment-avatar"
+      role="img"
+      aria-label={`Identidade de ${establishmentName}`}
+    >
+      {logoUrl && !logoFailed ? (
+        <img src={logoUrl} alt="" onError={() => setLogoFailed(true)} />
+      ) : (
+        <span aria-hidden="true">{getInitials(establishmentName)}</span>
+      )}
+    </span>
+  )
+}
+
 export function AppShell({
   establishmentName,
   activePage,
@@ -129,13 +153,7 @@ export function AppShell({
   establishmentLogoUrl?: string | null
   children: ReactNode
 }) {
-  const [establishmentLogoFailed, setEstablishmentLogoFailed] =
-    useState(false)
   const [platformLogoFailed, setPlatformLogoFailed] = useState(false)
-
-  useEffect(() => {
-    setEstablishmentLogoFailed(false)
-  }, [establishmentLogoUrl])
 
   const displayedEstablishmentName =
     establishmentName || 'Seu estabelecimento'
@@ -144,23 +162,11 @@ export function AppShell({
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header__identity">
-          <span
-            className="establishment-avatar"
-            role="img"
-            aria-label={`Identidade de ${displayedEstablishmentName}`}
-          >
-            {establishmentLogoUrl && !establishmentLogoFailed ? (
-              <img
-                src={establishmentLogoUrl}
-                alt=""
-                onError={() => setEstablishmentLogoFailed(true)}
-              />
-            ) : (
-              <span aria-hidden="true">
-                {getInitials(displayedEstablishmentName)}
-              </span>
-            )}
-          </span>
+          <EstablishmentAvatar
+            key={establishmentLogoUrl ?? 'no-logo'}
+            establishmentName={displayedEstablishmentName}
+            logoUrl={establishmentLogoUrl}
+          />
           <span className="establishment-name" title={displayedEstablishmentName}>
             {displayedEstablishmentName}
           </span>
