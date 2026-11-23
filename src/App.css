@@ -757,7 +757,8 @@
   }
 
   .desktop-sidebar {
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: 22px 14px;
     background: var(--surface);
     border-right: 1px solid var(--border);
@@ -787,6 +788,19 @@
     min-width: 0;
     text-align: left;
     white-space: normal;
+  }
+
+  .support-nav-item.ui-button {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 48px;
+    margin-top: auto;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    text-decoration: none;
   }
 
   .mobile-bottom-nav {

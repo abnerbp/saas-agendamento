@@ -5,6 +5,7 @@ import { useEstablishment } from '../contexts/EstablishmentContextValue'
 import { supabase } from '../services/supabase'
 import ServicesPage from './ServicesPage'
 import ProfessionalsPage from '../ProfessionalsPage'
+import { supportWhatsappUrl } from '../config/support'
 
 function DashboardPage() {
   const [currentPage, setCurrentPage] = useState<AppPage>('home')
@@ -101,6 +102,23 @@ function DashboardPage() {
               Abrir
             </Button>
           </Card>
+          {supportWhatsappUrl && (
+            <Card className="menu-card">
+              <div>
+                <h2>Ajuda e suporte</h2>
+                <p>Fale conosco pelo WhatsApp.</p>
+              </div>
+              <a
+                href={supportWhatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ui-button ui-button--secondary"
+                aria-label="Abrir Ajuda e suporte no WhatsApp"
+              >
+                Abrir
+              </a>
+            </Card>
+          )}
         </main>
       )
       break

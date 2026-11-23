@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Button } from './ui'
+import { supportWhatsappUrl } from '../config/support'
 
 export type AppPage =
   | 'home'
@@ -19,6 +20,7 @@ type NavItem = {
     | 'services'
     | 'more'
     | 'professionals'
+    | 'support'
 }
 
 const primaryNavItems: NavItem[] = [
@@ -80,6 +82,12 @@ function NavigationIcon({ name }: { name: NavItem['icon'] }) {
         <circle cx="5" cy="12" r="1" />
         <circle cx="12" cy="12" r="1" />
         <circle cx="19" cy="12" r="1" />
+      </>
+    ),
+    support: (
+      <>
+        <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+        <path d="M4 14a2 2 0 0 1 2-2h1v6H6a2 2 0 0 1-2-2v-2ZM20 14a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2v-2ZM17 18c0 2-2 3-5 3" />
       </>
     ),
     professionals: (
@@ -229,6 +237,18 @@ export function AppShell({
             onNavigate={onNavigate}
             className="desktop-nav"
           />
+          {supportWhatsappUrl && (
+            <a
+              href={supportWhatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ui-button ui-button--quiet nav-item support-nav-item"
+              aria-label="Abrir Ajuda e suporte no WhatsApp"
+            >
+              <NavigationIcon name="support" />
+              <span>Ajuda e suporte</span>
+            </a>
+          )}
         </aside>
         <div className="app-content">{children}</div>
       </div>
