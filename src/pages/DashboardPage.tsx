@@ -37,7 +37,7 @@ function DashboardPage() {
     case 'professionals':
       pageContent = (
         <>
-          <div className="back-link">
+          <div className="back-link professionals-back-link">
             <Button
               variant="secondary"
               type="button"
